@@ -1,11 +1,17 @@
 package auth
 
 Error :: union {
+	UnknownError,
 	MissingCredentials,
 	AuthError,
 	JsonError,
 	HttpError,
 	CryptoError,
+}
+
+// TODO: Make this into a union of different errors (Allocation, odin level errors)
+UnknownError :: struct {
+	message: string,
 }
 
 MissingCredentials :: struct {
