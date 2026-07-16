@@ -1,2 +1,3 @@
-# agent-odin
-AI Agent written in Odin
+# langchain-odin
+
+Just a basic langchain implementation in odin (mostly for me 🤷)
