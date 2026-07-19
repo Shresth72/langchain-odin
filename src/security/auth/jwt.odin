@@ -2,9 +2,9 @@ package auth
 
 import "core:encoding/base64"
 import "core:encoding/json"
-import "core:math/big"
 import "core:strings"
 import "core:time"
+
 // Header for signed tokens
 JWTHeader :: struct {
 	alg: string, // RS256

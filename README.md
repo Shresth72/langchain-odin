@@ -6,7 +6,7 @@ Plan for now:
 - Secure Auth system for available LLM providers
     - Using Cloud
     - Using API Key
-    - Direct Login
+    - Direct Login (OAuth2)
 - Base classes for available LLM providers
 
 > Note: Odin will be adding http and tls support in 1.0 (2027), 
