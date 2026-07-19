@@ -5,6 +5,8 @@ import "core:encoding/json"
 import "core:strings"
 import "core:time"
 
+import "../../common"
+
 // Header for signed tokens
 JWTHeader :: struct {
 	alg: string, // RS256
@@ -49,10 +51,16 @@ create_jwt_claims :: proc(
 	}
 }
 
-encode_jwt_segment :: proc(value: any, allocator := context.allocator) -> (string, Maybe(Error)) {
+encode_jwt_segment :: proc(
+	value: any,
+	allocator := context.allocator,
+) -> (
+	string,
+	Maybe(common.Error),
+) {
 	json_bytes, json_err := json.marshal(value, {}, allocator)
 	if json_err != nil {
-		return "", JsonError{message = "Failed to marshal JWT Segment"}
+		return "", common.JsonError{message = "Failed to marshal JWT Segment"}
 	}
 
 	encoded := base64.encode(json_bytes, base64.ENC_TABLE, allocator)
@@ -63,7 +71,7 @@ encode_jwt_segment :: proc(value: any, allocator := context.allocator) -> (strin
 	encoded_str, ok = strings.replace_all(encoded_str, "+", "-", allocator)
 	encoded_str, ok = strings.replace_all(encoded_str, "/", "_", allocator)
 	if !ok {
-		return "", UnknownError{message = "Error allocating encoded jwt segment"}
+		return "", common.UnknownError{message = "Error allocating encoded jwt segment"}
 	}
 
 	return encoded_str, nil
@@ -76,7 +84,7 @@ create_jwt_unsigned :: proc(
 	allocator := context.allocator,
 ) -> (
 	string,
-	Maybe(Error),
+	Maybe(common.Error),
 ) {
 	header := JWTHeader {
 		alg = DEFAULT_JWT_ALGO,

@@ -1,8 +1,9 @@
-package auth
+package common
 
 Error :: union {
 	UnknownError,
 	MissingCredentials,
+	NotImplemented,
 	AuthError,
 	JsonError,
 	HttpError,
@@ -16,6 +17,10 @@ UnknownError :: struct {
 
 MissingCredentials :: struct {
 	env_vars: [dynamic]string,
+}
+
+NotImplemented :: struct {
+	message: string,
 }
 
 AuthError :: struct {

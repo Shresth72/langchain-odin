@@ -6,12 +6,14 @@ import "core:encoding/base64"
 import "core:encoding/pem"
 import "core:strings"
 
+import "../../common"
+
 parse_pkcs8_private_key :: proc(
 	der_bytes: []u8,
 	allocator := context.allocator,
 ) -> (
 	rsa.Private_Key,
-	Maybe(Error),
+	Maybe(common.Error),
 ) {
 	priv_key := rsa.Private_Key{}
 
@@ -20,49 +22,49 @@ parse_pkcs8_private_key :: proc(
 
 	// Skip tag
 	if offset >= len(der_bytes) || der_bytes[offset] != SEQUENCE {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: not a SEQUENCE"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: not a SEQUENCE"}
 	}
 	offset += 1
 
 	// Parse length
 	len_bytes, consumed := parse_der_length(der_bytes[offset:])
 	if len_bytes == -1 {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: bad length"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: bad length"}
 	}
 	offset += consumed
 
 	// Skip version (tag + length + value)
 	if offset >= len(der_bytes) || der_bytes[offset] != INTEGER {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: missing version"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: missing version"}
 	}
 	offset += 1
 
 	if offset >= len(der_bytes) || der_bytes[offset] != VALUE {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: bad version"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: bad version"}
 	}
 	offset += 2
 
 	// Skip algorithm
 	if offset >= len(der_bytes) || der_bytes[offset] != SEQUENCE {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: missing algorithm"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: missing algorithm"}
 	}
 	offset += 1
 
 	algo_len, algo_consumed := parse_der_length(der_bytes[offset:])
 	if algo_len == -1 {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: bad algorithm length"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: bad algorithm length"}
 	}
 	offset += algo_consumed + int(algo_len)
 
 	// Extract privateKey
 	if offset >= len(der_bytes) || der_bytes[offset] != OCTET_STRING {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: missing privateKey"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: missing privateKey"}
 	}
 	offset += 1
 
 	key_len, key_consumed := parse_der_length(der_bytes[offset:])
 	if key_len == -1 {
-		return priv_key, CryptoError{message = "Invalid PKCS#8: bad privateKey length"}
+		return priv_key, common.CryptoError{message = "Invalid PKCS#8: bad privateKey length"}
 	}
 	offset += key_consumed
 
@@ -70,7 +72,7 @@ parse_pkcs8_private_key :: proc(
 	pkcs1_bytes := der_bytes[offset:offset + int(key_len)]
 	ok := parse_pkcs1_rsa_key(&priv_key, pkcs1_bytes)
 	if !ok {
-		return priv_key, CryptoError{message = "Failed to parse PKCS#1 RSA key"}
+		return priv_key, common.CryptoError{message = "Failed to parse PKCS#1 RSA key"}
 	}
 
 	return priv_key, nil
@@ -174,20 +176,20 @@ load_private_key_pem :: proc(
 	allocator := context.temp_allocator,
 ) -> (
 	rsa.Private_Key,
-	Maybe(Error),
+	Maybe(common.Error),
 ) {
 	priv_key := rsa.Private_Key{}
 
 	// Decode PEM block
 	pem_block, _, pem_err := pem.decode(transmute([]u8)pem_data, allocator)
 	if pem_err != nil {
-		return priv_key, CryptoError{message = "Failed to decode PEM"}
+		return priv_key, common.CryptoError{message = "Failed to decode PEM"}
 	}
 	defer pem.block_delete(pem_block)
 
 	// Verify private key
 	if pem_block.label != pem.LABEL_PRIVATE_KEY {
-		return priv_key, CryptoError{message = "PEM is not a private key"}
+		return priv_key, common.CryptoError{message = "PEM is not a private key"}
 	}
 
 	// Parse verified priv_key
@@ -204,7 +206,7 @@ sign_sha256_rsa :: proc(
 	allocator := context.allocator,
 ) -> (
 	string,
-	Maybe(Error),
+	Maybe(common.Error),
 ) {
 	// RSA-2048 = 256 bytes; RSA-4096 = 512 bytes
 	sig_buf := make([dynamic]u8, 512, allocator)
@@ -212,14 +214,14 @@ sign_sha256_rsa :: proc(
 
 	ok := rsa.sign_pkcs1(priv_key, hash.Algorithm.SHA256, transmute([]u8)message, sig_buf[:])
 	if !ok {
-		return "", CryptoError{message = "RSA-SHA256 signing failed"}
+		return "", common.CryptoError{message = "RSA-SHA256 signing failed"}
 	}
 
 	// Get signature length
 	n_buf: [512]u8 = ---
 	n_len := rsa.private_key_n(priv_key, n_buf[:])
 	if n_len <= 0 {
-		return "", CryptoError{message = "Failed to get key size"}
+		return "", common.CryptoError{message = "Failed to get key size"}
 	}
 
 	// Encode signature to base64url
